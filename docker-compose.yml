@@ -1,0 +1,37 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock   # to run sibling containers
+      - /tmp/uploads:/tmp/uploads
+      - /tmp/results:/tmp/results
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  celery_worker:
+    build: ./backend
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+    depends_on:
+      - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/uploads:/tmp/uploads
+      - /tmp/results:/tmp/results
+    environment:
+      - REDIS_URL=redis://redis:6379
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
