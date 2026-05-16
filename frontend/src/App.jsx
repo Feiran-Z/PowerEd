@@ -43,7 +43,7 @@ function App() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>CoTEACH Web Agent</h1>
+      <h1>PowerEd Agent</h1>
       <UploadArea onFilesSelected={setFiles} />
       <PromptInput value={prompt} onChange={setPrompt} />
       <div>
