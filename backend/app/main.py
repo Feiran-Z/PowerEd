@@ -5,6 +5,7 @@ from celery.result import AsyncResult
 from .models import TaskCreateResponse, TaskStatus
 from .tasks import run_claude_task
 from .websocket_manager import manager, listen_redis
+from .utils import ensure_dir, cleanup_old_workspaces
 import uuid
 import os
 from pathlib import Path
@@ -12,8 +13,8 @@ from pathlib import Path
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
-UPLOAD_DIR = Path("/tmp/uploads")
-RESULTS_DIR = Path("/tmp/results")
+UPLOAD_DIR = ensure_dir(Path("/tmp/uploads"))
+RESULTS_DIR = ensure_dir(Path("/tmp/results"))
 UPLOAD_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 
@@ -64,6 +65,12 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
         manager.disconnect(task_id)
 
 import asyncio
+async def periodic_cleanup():
+    while True:
+        await asyncio.sleep(3600)  # every hour
+        cleanup_old_workspaces(UPLOAD_DIR, RESULTS_DIR, max_age_hours=1)
+
 @app.on_event("startup")
 async def startup():
     asyncio.create_task(listen_redis())
+    asyncio.create_task(periodic_cleanup())
