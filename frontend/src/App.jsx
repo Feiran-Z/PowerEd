@@ -18,8 +18,26 @@ function App() {
   const [downloadReady, setDownloadReady] = useState(false);
 
   const handleRun = async () => {
+    // --- Validation first ---
+    if (files.length === 0) {
+      alert("Please select at least one file.");
+      return;
+    }
+    if (!prompt.trim()) {
+      alert("Please enter a prompt.");
+      return;
+    }
+    if (!apiKey.trim()) {
+      alert("Please enter your API key.");
+      return;
+    }
+
     setIsRunning(true);
     setDownloadReady(false);
+    setLogs([]);
+    setUploadStatus('uploading');
+
+    // --- Build FormData (ONCE) ---
     const formData = new FormData();
     formData.append('prompt', prompt);
     formData.append('api_key', apiKey);
@@ -27,28 +45,33 @@ function App() {
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
 
-    setUploadStatus('uploading');
     try {
-      // The files are already in the parent's `files` state (thanks to useEffect)
-      const formData = new FormData();
-      // ... add all fields and files
       const response = await submitTask(formData);
       const { task_id, ws_url } = response;
       setTaskId(task_id);
       setUploadStatus('success');
-    } catch (err) {
-      setUploadStatus('error');
-    }
 
-    // WebSocket connection for logs
-    const ws = new WebSocket(`ws://${window.location.host}${ws_url}`);
-    ws.onmessage = (event) => {
-      setLogs(prev => [...prev, event.data]);
-      if (event.data.includes('Results zipped')) {
-        setDownloadReady(true);
+      // --- WebSocket for logs (inside try, using the returned ws_url) ---
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
+      ws.onmessage = (event) => {
+        setLogs(prev => [...prev, event.data]);
+        if (event.data.includes('Results zipped')) {
+          setDownloadReady(true);
+          setIsRunning(false);
+        }
+      };
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        setLogs(prev => [...prev, "⚠️ WebSocket connection failed.\n"]);
         setIsRunning(false);
-      }
-    };
+      };
+    } catch (err) {
+      console.error("Submission error:", err);
+      setUploadStatus('error');
+      setIsRunning(false);
+      alert(`Upload failed: ${err.message}`);
+    }
   };
 
   return (

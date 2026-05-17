@@ -60,7 +60,7 @@ function UploadArea({ onFilesSelected, uploadStatus = 'idle' }) {
         {isDragActive ? (
           <p>Drop files here...</p>
         ) : (
-          <p>Drag & drop files here, or click to select (PDF, DOCX, XLSX, PPTX, etc.)</p>
+          <p>Drag & drop files here, or click to select (PDF, DOCX, XLSX, PPTX, TXT, etc.)</p>
         )}
       </div>
 
