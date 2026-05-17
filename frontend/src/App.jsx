@@ -7,6 +7,7 @@ import { submitTask } from './api';
 
 function App() {
   const [files, setFiles] = useState([]);
+  const [uploadStatus, setUploadStatus] = useState('idle');
   const [prompt, setPrompt] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('https://api.deepseek.com/anthropic');
@@ -17,6 +18,17 @@ function App() {
   const [downloadReady, setDownloadReady] = useState(false);
 
   const handleRun = async () => {
+    setUploadStatus('uploading');
+    try {
+      // The files are already in the parent's `files` state (thanks to useEffect)
+      const formData = new FormData();
+      // ... add all fields and files
+      await submitTask(formData);
+      setUploadStatus('success');
+    } catch (err) {
+      setUploadStatus('error');
+    }
+
     setIsRunning(true);
     setDownloadReady(false);
     const formData = new FormData();
@@ -44,7 +56,7 @@ function App() {
   return (
     <div style={{ padding: 20 }}>
       <h1>PowerEd Agent</h1>
-      <UploadArea onFilesSelected={setFiles} />
+      <UploadArea onFilesSelected={setFiles} uploadStatus={uploadStatus} />
       <PromptInput value={prompt} onChange={setPrompt} />
       <div>
         <label>API Key: <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} /></label>
