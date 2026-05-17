@@ -1,17 +1,20 @@
 # Use the official slim Node.js image (Debian-based)
-FROM node:20-slim
+FROM node:20
 
 # Install dependencies needed for some skills (e.g., PDF generation may need libglib)
 # Not strictly required for basic CLI, but included for robustness.
-RUN apt-get update && apt-get install -y \
-    libglib2.0-0 \
-    libnss3 \
-    libatk-bridge2.0-0 \
-    libdrm2 \
-    libxkbcommon0 \
-    libgbm1 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
+#RUN sed -i 's|deb.debian.org|ftp.us.debian.org|g' /etc/apt/sources.list.d/debian.sources || true && \
+
+#RUN apt-get update --fix-missing || (sleep 5 && apt-get update --fix-missing) && \
+#    apt-get install -y --no-install-recommends \
+#        libglib2.0-0 \
+#        libnss3 \
+#        libatk-bridge2.0-0 \
+#        libdrm2 \
+#        libxkbcommon0 \
+#        libgbm1 \
+#        libasound2 \
+#    && rm -rf /var/lib/apt/lists/*
 
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
