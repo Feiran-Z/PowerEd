@@ -1,39 +1,33 @@
+# backend/app/websocket_manager.py
 from fastapi import WebSocket
+import redis.asyncio as redis
+import asyncio
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, list[WebSocket]] = {}
-    
+
     async def connect(self, websocket: WebSocket, task_id: str):
         await websocket.accept()
-        if task_id not in self.active_connections:
-            self.active_connections[task_id] = []
-        self.active_connections[task_id].append(websocket)
-    
+        self.active_connections.setdefault(task_id, []).append(websocket)
+
     def disconnect(self, task_id: str):
-        if task_id in self.active_connections:
-            del self.active_connections[task_id]
-    
+        self.active_connections.pop(task_id, None)
+
     async def send_log(self, task_id: str, message: str):
-        if task_id in self.active_connections:
-            for ws in self.active_connections[task_id]:
-                await ws.send_text(message)
+        for ws in self.active_connections.get(task_id, []):
+            await ws.send_text(message)
 
 manager = ConnectionManager()
 
-# Redis subscriber (run in a background thread inside FastAPI)
-import asyncio
-import aioredis
 async def listen_redis():
-    while True:
-        try:
-            pubsub = await aioredis.from_url("redis://redis:6379").pubsub()
-            await pubsub.subscribe("logs:*")
-            async for msg in pubsub.listen():
-                if msg['type'] == 'message':
-                    channel = msg['channel'].decode()
-                    task_id = channel.split(':')[1]
-                    await manager.send_log(task_id, msg['data'].decode())
-        except Exception as e:
-            print(f"Redis listener error: {e}, reconnecting in 5s...")
-            await asyncio.sleep(5)
+    """Background task that subscribes to Redis logs and forwards them via WebSocket."""
+    redis_client = await redis.from_url("redis://redis:6379", decode_responses=True)
+    pubsub = redis_client.pubsub()
+    await pubsub.subscribe("logs:*")
+    async for message in pubsub.listen():
+        if message['type'] == 'message':
+            channel = message['channel']
+            task_id = channel.split(':')[1]
+            log_line = message['data']
+            await manager.send_log(task_id, log_line)
