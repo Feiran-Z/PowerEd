@@ -1,12 +1,17 @@
-import axios from 'axios';
-
+// frontend/src/api.js
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 export const submitTask = async (formData) => {
-  const res = await axios.post(`${API_BASE}/tasks`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+  const response = await fetch(`${API_BASE}/tasks`, {
+    method: 'POST',
+    body: formData,
+    // Do NOT set Content-Type header; browser will set it with boundary
   });
-  return res.data;
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`HTTP ${response.status}: ${text}`);
+  }
+  return response.json();
 };
 
 export const downloadResult = (taskId) => {

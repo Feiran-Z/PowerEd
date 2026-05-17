@@ -18,17 +18,6 @@ function App() {
   const [downloadReady, setDownloadReady] = useState(false);
 
   const handleRun = async () => {
-    setUploadStatus('uploading');
-    try {
-      // The files are already in the parent's `files` state (thanks to useEffect)
-      const formData = new FormData();
-      // ... add all fields and files
-      await submitTask(formData);
-      setUploadStatus('success');
-    } catch (err) {
-      setUploadStatus('error');
-    }
-
     setIsRunning(true);
     setDownloadReady(false);
     const formData = new FormData();
@@ -38,10 +27,19 @@ function App() {
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
 
-    const response = await submitTask(formData);
-    const { task_id, ws_url } = response;
-    setTaskId(task_id);
-    
+    setUploadStatus('uploading');
+    try {
+      // The files are already in the parent's `files` state (thanks to useEffect)
+      const formData = new FormData();
+      // ... add all fields and files
+      const response = await submitTask(formData);
+      const { task_id, ws_url } = response;
+      setTaskId(task_id);
+      setUploadStatus('success');
+    } catch (err) {
+      setUploadStatus('error');
+    }
+
     // WebSocket connection for logs
     const ws = new WebSocket(`ws://${window.location.host}${ws_url}`);
     ws.onmessage = (event) => {
