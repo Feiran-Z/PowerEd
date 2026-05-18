@@ -25,7 +25,7 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
     # Command to run inside container
     cmd = [
-        "claude"
+        "claude",
         "-p", prompt,
         "--no-session-persistence",
         "--permission-mode", "bypassPermissions"
@@ -39,30 +39,36 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         return {"error": "Docker daemon unavailable"}
 
     try:
-        # Run container with logs streaming
+        # Run container
         container = client.containers.run(
             image="claude-image:latest",
             command=cmd,
             environment=env_vars,
             volumes={workspace_dir: {"bind": "/workspace", "mode": "rw"}},
             working_dir="/workspace",
-            remove=True,          # automatically remove container when finished
-            detach=True,          # run in background so we can stream logs
+            remove=False,          # keep so we can get logs
+            detach=True,
             stdout=True,
             stderr=True,
         )
-
-        # Stream logs line by line
-        for line in container.logs(stream=True, follow=True):
-            publish_log(task_id, line.decode('utf-8'))
-
-        # Wait for container to finish and get exit code
+        publish_log(task_id, f"Command: {cmd}\n")
+        publish_log(task_id, f"Environment keys: {list(env_vars.keys())}\n")
+        
+        # Wait for completion
         result = container.wait()
         exit_code = result.get('StatusCode', -1)
 
-        if exit_code != 0:
-            publish_log(task_id, f"\n❌ Container failed with exit code {exit_code}\n")
-            return {"error": f"Claude execution failed (exit {exit_code})"}
+        # Get all logs after exit (both stdout and stderr)
+        logs = container.logs(stdout=True, stderr=True).decode('utf-8', errors='replace')
+        if logs:
+            publish_log(task_id, logs)
+        else:
+            publish_log(task_id, "(No output from container)\n")
+
+        publish_log(task_id, f"Container exited with code {exit_code}\n")
+
+        # Clean up
+        container.remove()
 
     except docker.errors.ImageNotFound:
         publish_log(task_id, "\n❌ Docker image 'claude-image:latest' not found. Build it first.\n")

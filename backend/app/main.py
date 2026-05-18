@@ -6,6 +6,7 @@ from .models import TaskCreateResponse, TaskStatus
 from .tasks import run_claude_task
 from .websocket_manager import manager, listen_redis
 from .utils import ensure_dir, cleanup_old_workspaces
+import asyncio
 import uuid
 import os
 from pathlib import Path
@@ -15,8 +16,6 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
 UPLOAD_DIR = ensure_dir(Path("/tmp/uploads"))
 RESULTS_DIR = ensure_dir(Path("/tmp/results"))
-UPLOAD_DIR.mkdir(exist_ok=True)
-RESULTS_DIR.mkdir(exist_ok=True)
 
 @app.post("/api/tasks", response_model=TaskCreateResponse)
 async def create_task(
@@ -35,10 +34,17 @@ async def create_task(
         for f in files:
             content = await f.read()
             (workspace / f.filename).write_bytes(content)
+    
+    enhanced_prompt = (
+        f"{prompt}\n\n"
+        f"You MUST use the powered-planning skill in '.claude/skills/powered-planning/SKILL.md'.\n"
+        f"(Note: You are operating inside the folder '/workspace'. "
+        f"Please create all output files in the './output/' subfolder.)"
+    )
 
     # Launch Celery task
     celery_task = run_claude_task.delay(
-        str(workspace), prompt, api_key, base_url, model, task_id
+        str(workspace), enhanced_prompt, api_key, base_url, model, task_id
     )
     return {"task_id": celery_task.id, "ws_url": f"/ws/{task_id}"}
 
@@ -64,7 +70,6 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
     except WebSocketDisconnect:
         manager.disconnect(task_id)
 
-import asyncio
 async def periodic_cleanup():
     while True:
         await asyncio.sleep(3600)  # every hour
