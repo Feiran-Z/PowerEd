@@ -19,13 +19,10 @@ FROM node:20
 # Install Claude Code CLI globally
 RUN npm install -g @anthropic-ai/claude-code
 
-# Create the Claude configuration directory
-RUN mkdir -p /root/.claude
-
-# Copy the entire .claude folder (skills + any other config)
-COPY .claude /root/.claude/
-
-RUN chmod -R 755 /root/.claude   # Allows reading by any user
+# Create .claude/skills under node USER not under /root
+RUN mkdir -p /home/node/.claude/skills
+COPY .claude/skills /home/node/.claude/skills
+RUN chown -R node:node /home/node/.claude
 
 # Pre-configure the Exa MCP server (with a placeholder API key)
 # The actual key will be passed via environment variable at runtime.

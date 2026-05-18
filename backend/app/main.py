@@ -37,7 +37,7 @@ async def create_task(
     
     enhanced_prompt = (
         f"{prompt}\n\n"
-        f"You MUST use the powered-planning skill in '/root/.claude/skills/powered-planning/SKILL.md'.\n"
+        f"You MUST use the powered-planning skill in '/home/node/.claude/skills/powered-planning/SKILL.md'.\n"
         f"(Note: You are operating inside the folder '/workspace'. "
         f"Please create all output files in the './output/' subfolder.)"
     )

@@ -29,16 +29,15 @@ claude-image/
 Current working directory (cwd) provided by the user
 ```
 [cwd]/
-├── input/                               # Folder containing user-supplied files such as syllabi (PDFs, DOCXs, etc.)
-├── output/                              # Folder for output files
-│   ├── original-unit/unit-plan.docx     # Original/source unit plan, to be copied or generated (Phase 1a or 1.5)
-│   ├── improved-unit/unit-plan.docx     # Improved unit plan, to be generated (Phase 3)
-│   ├── lesson-plans/lesson-plans.docx   # Generated lesson plans, to be generated (Phase 4)
-│   ├── checklist.md                     # Checklist of phase progression, to be generated (Phase 0)
-│   ├── key-info.md                      # Key information of the unit, to be generated (Phase 1a or 1b)
-│   ├── analysis.md                      # Expert analysis of the original unit plan, to be generated (Phase 2)
-│   └── suggestion.md                    # Expert suggestion for the improved unit plan, to be generated (Phase 2)
-└── template/                            # Unit plan templates (e.g., IB-unit-planner-default.docx)
+├── uploads/                             # Folder containing user uploaded files such as syllabi and unit planner
+└── output/                              # Folder for output files
+    ├── original-unit/unit-plan.docx     # Original/source unit plan, to be copied or generated (Phase 1a or 1.5)
+    ├── improved-unit/unit-plan.docx     # Improved unit plan, to be generated (Phase 3)
+    ├── lesson-plans/lesson-plans.docx   # Generated lesson plans, to be generated (Phase 4)
+    ├── checklist.md                     # Checklist of phase progression, to be generated (Phase 0)
+    ├── key-info.md                      # Key information of the unit, to be generated (Phase 1a or 1b)
+    ├── analysis.md                      # Expert analysis of the original unit plan, to be generated (Phase 2)
+    └── suggestion.md                    # Expert suggestion for the improved unit plan, to be generated (Phase 2)
 ```
 
 You will execute the following phased workflow. You start with Phase 0, and MUST FOLLOW THROUGH ALL PHASES AFTER THE STARTING POINT. **NEVER ASK THE USER FOR INPUT, CLARIFICATION, OR APPROVAL – PROCEED AS YOU SEE FIT.**
