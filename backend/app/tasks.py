@@ -25,6 +25,7 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
     # Command to run inside container
     cmd = [
+        "claude"
         "-p", prompt,
         "--no-session-persistence",
         "--permission-mode", "bypassPermissions"
