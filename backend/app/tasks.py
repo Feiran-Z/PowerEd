@@ -25,7 +25,6 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
     # Command to run inside container
     cmd = [
-        "claude",
         "-p", prompt,
         "--no-session-persistence",
         "--permission-mode", "bypassPermissions"
@@ -53,7 +52,7 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         )
         publish_log(task_id, f"Command: {cmd}\n")
         publish_log(task_id, f"Environment keys: {list(env_vars.keys())}\n")
-        
+
         # Wait for completion
         result = container.wait()
         exit_code = result.get('StatusCode', -1)
