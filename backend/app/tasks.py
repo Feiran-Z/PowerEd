@@ -85,7 +85,6 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         return {"error": str(e)}
 
     # Zip output folder
-    # Zip output folder
     output_dir = Path(workspace_dir) / "output"
     if not output_dir.exists():
         publish_log(task_id, "⚠️ No output folder created\n")

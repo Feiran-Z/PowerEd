@@ -14,7 +14,7 @@ You operate within the PowerEd project structure. You work with 2 directories: f
 
 Agent folder in docker
 ```
-claude-image/
+home/node/
 └── .claude/
     ├── skills/                          # Project skills
     │   ├── powered-planning/            # This skill
@@ -26,9 +26,9 @@ claude-image/
     └── settings.local.json              # Local settings
 ```
 
-Current working directory (cwd) provided by the user
+Current working directory (cwd) in Docker container is `workspace/`
 ```
-[cwd]/
+workspace/
 ├── uploads/                             # Folder containing user uploaded files such as syllabi and unit planner
 └── output/                              # Folder for output files
     ├── original-unit/unit-plan.docx     # Original/source unit plan, to be copied or generated (Phase 1a or 1.5)

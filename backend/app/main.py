@@ -31,18 +31,21 @@ async def create_task(
 
     # Save uploaded files
     if files:
-        for f in files:
-            content = await f.read()
-            (workspace / f.filename).write_bytes(content)
+    # Create a 'userfiles' subdirectory inside the workspace
+        userfiles_dir = workspace / "userfiles"
+        userfiles_dir.mkdir(exist_ok=True)
+    
+    for f in files:
+        content = await f.read()
+        (userfiles_dir / f.filename).write_bytes(content)
     
     enhanced_prompt = (
         f"{prompt}\n\n"
         f"You MUST use the powered-planning skill in '/home/node/.claude/skills/powered-planning/SKILL.md'.\n"
         f"(Note: You are operating inside the folder '/workspace'. "
+        f"All user supplied files are in the './userfiles/' subfolder."
         f"Please create all output files in the './output/' subfolder.)"
     )
-
-    # enhanced_prompt = "Write a file named 'hello.txt' containing 'Hello from Claude' in the './output/' directory."
 
     # Launch Celery task
     celery_task = run_claude_task.delay(
