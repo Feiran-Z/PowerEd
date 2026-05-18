@@ -13,6 +13,8 @@ def publish_log(task_id, line):
 @celery_app.task(bind=True)
 def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_id):
     publish_log(task_id, "🚀 Starting Claude container using Docker SDK...\n")
+    publish_log(task_id, f"Workspace: {workspace_dir}\n")
+    publish_log(task_id, f"Prompt length: {len(prompt)} chars\n")
 
     # Prepare environment variables (remove None values)
     env_vars = {
@@ -50,8 +52,9 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
             stdout=True,
             stderr=True,
         )
-        publish_log(task_id, f"Command: {cmd}\n")
-        publish_log(task_id, f"Environment keys: {list(env_vars.keys())}\n")
+        publish_log(task_id, f"Container ID: {container.id}\n")
+        #publish_log(task_id, f"Command: {cmd}\n")
+        #publish_log(task_id, f"Environment keys: {list(env_vars.keys())}\n")
 
         # Wait for completion
         result = container.wait()
@@ -66,6 +69,11 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
         publish_log(task_id, f"Container exited with code {exit_code}\n")
 
+        # After container.wait() and before container.remove()
+        logs = container.logs(stdout=True, stderr=True).decode('utf-8', errors='replace')
+        with open(Path(workspace_dir) / "claude_debug.log", "w") as f:
+            f.write(logs)
+
         # Clean up
         container.remove()
 
@@ -77,13 +85,22 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         return {"error": str(e)}
 
     # Zip output folder
+    # Zip output folder
     output_dir = Path(workspace_dir) / "output"
     if not output_dir.exists():
         publish_log(task_id, "⚠️ No output folder created\n")
         return {"error": "No output generated"}
 
-    zip_path = Path("/tmp/results") / f"{task_id}.zip"
-    shutil.make_archive(str(zip_path).replace('.zip', ''), 'zip', output_dir)
-    publish_log(task_id, f"✅ Results zipped: {zip_path}\n")
+    # Create zip in workspace first (writable)
+    temp_zip = Path(workspace_dir) / f"{task_id}.zip"
+    shutil.make_archive(str(temp_zip).replace('.zip', ''), 'zip', output_dir)
+    publish_log(task_id, f"✅ Zip created at {temp_zip}\n")
+
+    # Move to results directory
+    results_dir = Path("/tmp/results")
+    results_dir.mkdir(parents=True, exist_ok=True)
+    final_zip = results_dir / f"{task_id}.zip"
+    shutil.move(str(temp_zip), str(final_zip))
+    publish_log(task_id, f"✅ Results zipped: {final_zip}\n")
 
     return {"download_url": f"/api/tasks/{self.request.id}/download"}

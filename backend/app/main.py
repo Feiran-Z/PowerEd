@@ -37,10 +37,12 @@ async def create_task(
     
     enhanced_prompt = (
         f"{prompt}\n\n"
-        f"You MUST use the powered-planning skill in '.claude/skills/powered-planning/SKILL.md'.\n"
+        f"You MUST use the powered-planning skill in '/root/.claude/skills/powered-planning/SKILL.md'.\n"
         f"(Note: You are operating inside the folder '/workspace'. "
         f"Please create all output files in the './output/' subfolder.)"
     )
+
+    # enhanced_prompt = "Write a file named 'hello.txt' containing 'Hello from Claude' in the './output/' directory."
 
     # Launch Celery task
     celery_task = run_claude_task.delay(

@@ -25,6 +25,8 @@ RUN mkdir -p /root/.claude
 # Copy the entire .claude folder (skills + any other config)
 COPY .claude /root/.claude/
 
+RUN chmod -R 755 /root/.claude   # Allows reading by any user
+
 # Pre-configure the Exa MCP server (with a placeholder API key)
 # The actual key will be passed via environment variable at runtime.
 # We use a dummy value here; it will be overwritten when the container runs.
@@ -38,4 +40,8 @@ WORKDIR /workspace
 # (see explanation below)
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Switch to non‑root user (node, UID 1000)
+USER node
+
 ENTRYPOINT ["/entrypoint.sh"]
