@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import UploadArea from './components/UploadArea';
 import PromptInput from './components/PromptInput';
 import LogViewer from './components/LogViewer';
