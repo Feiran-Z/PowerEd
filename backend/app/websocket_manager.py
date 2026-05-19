@@ -21,13 +21,18 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 async def listen_redis():
-    """Background task that subscribes to Redis logs and forwards them via WebSocket."""
-    redis_client = await redis.from_url("redis://redis:6379", decode_responses=True)
-    pubsub = redis_client.pubsub()
-    await pubsub.subscribe("logs:*")
-    async for message in pubsub.listen():
-        if message['type'] == 'message':
-            channel = message['channel']
-            task_id = channel.split(':')[1]
-            log_line = message['data']
-            await manager.send_log(task_id, log_line)
+    """Subscribe to Redis logs and forward to WebSockets, with auto-reconnect."""
+    while True:
+        try:
+            redis_client = await redis.from_url("redis://redis:6379", decode_responses=True)
+            pubsub = redis_client.pubsub()
+            await pubsub.subscribe("logs:*")
+            async for message in pubsub.listen():
+                if message['type'] == 'message':
+                    channel = message['channel']
+                    task_id = channel.split(':')[1]
+                    log_line = message['data']
+                    await manager.send_log(task_id, log_line)
+        except Exception as e:
+            print(f"Redis listener error: {e}, reconnecting in 5s...")
+            await asyncio.sleep(5)

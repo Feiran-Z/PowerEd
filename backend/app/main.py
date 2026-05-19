@@ -6,6 +6,7 @@ from .models import TaskCreateResponse, TaskStatus
 from .tasks import run_claude_task
 from .websocket_manager import manager, listen_redis
 from .utils import ensure_dir, cleanup_old_workspaces
+from contextlib import asynccontextmanager
 import asyncio
 import uuid
 import os
@@ -80,7 +81,13 @@ async def periodic_cleanup():
         await asyncio.sleep(3600)  # every hour
         cleanup_old_workspaces(UPLOAD_DIR, RESULTS_DIR, max_age_hours=1)
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     asyncio.create_task(listen_redis())
     asyncio.create_task(periodic_cleanup())
+    yield
+    # Shutdown (optional)
+    # cancel tasks, close connections, etc.
+
+app = FastAPI(lifespan=lifespan)
