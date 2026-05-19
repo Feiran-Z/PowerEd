@@ -76,7 +76,6 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
         # Clean up
         container.remove()
-
     except docker.errors.ImageNotFound:
         publish_log(task_id, "\n❌ Docker image 'claude-image:latest' not found. Build it first.\n")
         return {"error": "Image not found"}
@@ -84,22 +83,39 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         publish_log(task_id, f"\n❌ Docker error: {e}\n")
         return {"error": str(e)}
 
-    # Zip output folder
+    # After container finishes
     output_dir = Path(workspace_dir) / "output"
+    publish_log(task_id, f"Looking for output at: {output_dir}\n")
     if not output_dir.exists():
         publish_log(task_id, "⚠️ No output folder created\n")
+        # Also list workspace contents for debugging
+        try:
+            contents = "\n".join(str(p) for p in Path(workspace_dir).iterdir())
+            publish_log(task_id, f"Workspace contents:\n{contents}\n")
+        except:
+            pass
         return {"error": "No output generated"}
 
-    # Create zip in workspace first (writable)
-    temp_zip = Path(workspace_dir) / f"{task_id}.zip"
-    shutil.make_archive(str(temp_zip).replace('.zip', ''), 'zip', output_dir)
-    publish_log(task_id, f"✅ Zip created at {temp_zip}\n")
+    # Create zip in workspace (writable)
+    try:
+        temp_zip = Path(workspace_dir) / f"{task_id}.zip"
+        publish_log(task_id, f"Creating zip: {temp_zip}\n")
+        shutil.make_archive(str(temp_zip).replace('.zip', ''), 'zip', output_dir)
+        publish_log(task_id, f"✅ Zip created at {temp_zip}\n")
+    except Exception as e:
+        publish_log(task_id, f"❌ Failed to create zip: {e}\n")
+        return {"error": f"Zip creation failed: {e}"}
 
     # Move to results directory
-    results_dir = Path("/tmp/results")
-    results_dir.mkdir(parents=True, exist_ok=True)
-    final_zip = results_dir / f"{task_id}.zip"
-    shutil.move(str(temp_zip), str(final_zip))
-    publish_log(task_id, f"✅ Results zipped: {final_zip}\n")
+    try:
+        results_dir = Path("/tmp/results")
+        results_dir.mkdir(parents=True, exist_ok=True)
+        final_zip = results_dir / f"{task_id}.zip"
+        shutil.move(str(temp_zip), str(final_zip))
+        publish_log(task_id, f"✅ Results moved to: {final_zip}\n")
+        publish_log(task_id, "Results zipped\n")   # This exact string triggers download button
+    except Exception as e:
+        publish_log(task_id, f"❌ Failed to move zip: {e}\n")
+        return {"error": f"Move failed: {e}"}
 
     return {"download_url": f"/api/tasks/{self.request.id}/download"}
