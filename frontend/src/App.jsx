@@ -39,7 +39,8 @@ function App() {
     if (baseUrl) formData.append('base_url', baseUrl);
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
-
+    
+    setTaskId(null);
     setIsRunning(true);
     setDownloadReady(false);
     setLogs([]);
@@ -51,36 +52,41 @@ function App() {
       setTaskId(task_id);
   
       // 1) Try WebSocket for live logs (optional)
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
-      ws.onmessage = (event) => {
-        setLogs(prev => [...prev, event.data]);
-        if (event.data.includes('Results zipped')) {
-          setDownloadReady(true);
-          setIsRunning(false);
-        }
-      };
-      ws.onerror = (err) => console.error("WebSocket error", err);
+      //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      //const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
+      //ws.onmessage = (event) => {
+      //  setLogs(prev => [...prev, event.data]);
+      //  if (event.data.includes('Results zipped')) {
+      //    setDownloadReady(true);
+      //    setIsRunning(false);
+      //  }
+      //};
+      //ws.onerror = (err) => console.error("WebSocket error", err);
   
       // 2) Poll for completion as fallback (every 2 seconds)
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusRes = await fetch(`/api/tasks/${task_id}/status`);
-          const statusData = await statusRes.json();
-          if (statusData.status === 'SUCCESS') {
-            clearInterval(pollInterval);
-            setDownloadReady(true);
-            setIsRunning(false);
-            // Optionally fetch logs from a new endpoint if needed
-          } else if (statusData.status === 'FAILURE') {
-            clearInterval(pollInterval);
-            setIsRunning(false);
-            setLogs(prev => [...prev, "❌ Task failed"]);
+      useEffect(() => {
+        if (!taskId) return;
+        let timeoutId;
+        const poll = async () => {
+          try {
+            const res = await fetch(`/api/tasks/${taskId}/status`);
+            const data = await res.json();
+            if (data.status === 'SUCCESS') {
+              setDownloadReady(true);
+              setIsRunning(false);
+              return;
+            } else if (data.status === 'FAILURE') {
+              setIsRunning(false);
+              return;
+            }
+            timeoutId = setTimeout(poll, 2000);
+          } catch (err) {
+            timeoutId = setTimeout(poll, 2000);
           }
-        } catch (err) {
-          console.error("Poll error", err);
-        }
-      }, 2000);
+        };
+        poll();
+        return () => clearTimeout(timeoutId);
+      }, [taskId]); // re-run when taskId changes
     } catch (err) {
       setUploadStatus('error');
       setIsRunning(false);
