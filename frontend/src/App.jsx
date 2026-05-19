@@ -32,11 +32,6 @@ function App() {
       return;
     }
 
-    setIsRunning(true);
-    setDownloadReady(false);
-    setLogs([]);
-    setUploadStatus('uploading');
-
     // --- Build FormData (ONCE) ---
     const formData = new FormData();
     formData.append('prompt', prompt);
@@ -45,13 +40,17 @@ function App() {
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
 
+    setIsRunning(true);
+    setDownloadReady(false);
+    setLogs([]);
+    setUploadStatus('uploading');
+
     try {
       const response = await submitTask(formData);
       const { task_id, ws_url } = response;
       setTaskId(task_id);
-      setUploadStatus('success');
-
-      // --- WebSocket for logs (inside try, using the returned ws_url) ---
+  
+      // 1) Try WebSocket for live logs (optional)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
       ws.onmessage = (event) => {
@@ -61,13 +60,28 @@ function App() {
           setIsRunning(false);
         }
       };
-      ws.onerror = (err) => {
-        console.error("WebSocket error:", err);
-        setLogs(prev => [...prev, "⚠️ WebSocket connection failed.\n"]);
-        setIsRunning(false);
-      };
+      ws.onerror = (err) => console.error("WebSocket error", err);
+  
+      // 2) Poll for completion as fallback (every 2 seconds)
+      const pollInterval = setInterval(async () => {
+        try {
+          const statusRes = await fetch(`/api/tasks/${task_id}/status`);
+          const statusData = await statusRes.json();
+          if (statusData.status === 'SUCCESS') {
+            clearInterval(pollInterval);
+            setDownloadReady(true);
+            setIsRunning(false);
+            // Optionally fetch logs from a new endpoint if needed
+          } else if (statusData.status === 'FAILURE') {
+            clearInterval(pollInterval);
+            setIsRunning(false);
+            setLogs(prev => [...prev, "❌ Task failed"]);
+          }
+        } catch (err) {
+          console.error("Poll error", err);
+        }
+      }, 2000);
     } catch (err) {
-      console.error("Submission error:", err);
       setUploadStatus('error');
       setIsRunning(false);
       alert(`Upload failed: ${err.message}`);
