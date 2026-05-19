@@ -9,6 +9,10 @@ celery_app = Celery('tasks', broker='redis://redis:6379/0', backend='redis://red
 
 def publish_log(task_id, line):
     redis_client.publish(f"logs:{task_id}", line)
+    workspace = Path("/tmp/uploads") / task_id
+    log_file = workspace / "agent.log"
+    with open(log_file, "a") as f:
+        f.write(line)
 
 @celery_app.task(bind=True)
 def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_id):
@@ -68,11 +72,6 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
             publish_log(task_id, "(No output from container)\n")
 
         publish_log(task_id, f"Container exited with code {exit_code}\n")
-
-        # After container.wait() and before container.remove()
-        logs = container.logs(stdout=True, stderr=True).decode('utf-8', errors='replace')
-        with open(Path(workspace_dir) / "claude_debug.log", "w") as f:
-            f.write(logs)
 
         # Clean up
         container.remove()
