@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from celery.result import AsyncResult
@@ -12,7 +12,15 @@ import uuid
 import os
 from pathlib import Path
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    asyncio.create_task(listen_redis())
+    asyncio.create_task(periodic_cleanup())
+    yield
+    # Shutdown (optional: cancel tasks, close connections)
+
+app = FastAPI(lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"])
 
 UPLOAD_DIR = ensure_dir(Path("/tmp/uploads"))
@@ -66,7 +74,6 @@ async def download_result(task_id: str):
         raise HTTPException(404, "Result not ready or expired")
     return FileResponse(zip_path, media_type="application/zip", filename="output.zip")
 
-from fastapi import WebSocket, WebSocketDisconnect
 @app.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)
@@ -80,14 +87,3 @@ async def periodic_cleanup():
     while True:
         await asyncio.sleep(3600)  # every hour
         cleanup_old_workspaces(UPLOAD_DIR, RESULTS_DIR, max_age_hours=1)
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    asyncio.create_task(listen_redis())
-    asyncio.create_task(periodic_cleanup())
-    yield
-    # Shutdown (optional)
-    # cancel tasks, close connections, etc.
-
-app = FastAPI(lifespan=lifespan)
