@@ -17,6 +17,30 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
 
+  useEffect(() => {
+    if (!taskId) return;
+    let timeoutId;
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/tasks/${taskId}/status`);
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+          setDownloadReady(true);
+          setIsRunning(false);
+          return;
+        } else if (data.status === 'FAILURE') {
+          setIsRunning(false);
+          return;
+        }
+        timeoutId = setTimeout(poll, 2000);
+      } catch (err) {
+        timeoutId = setTimeout(poll, 2000);
+      }
+    };
+    poll();
+    return () => clearTimeout(timeoutId);
+  }, [taskId]); // re-run when taskId changes
+
   const handleRun = async () => {
     // --- Validation first ---
     if (files.length === 0) {
@@ -63,30 +87,7 @@ function App() {
       //};
       //ws.onerror = (err) => console.error("WebSocket error", err);
   
-      // 2) Poll for completion as fallback (every 2 seconds)
-      useEffect(() => {
-        if (!taskId) return;
-        let timeoutId;
-        const poll = async () => {
-          try {
-            const res = await fetch(`/api/tasks/${taskId}/status`);
-            const data = await res.json();
-            if (data.status === 'SUCCESS') {
-              setDownloadReady(true);
-              setIsRunning(false);
-              return;
-            } else if (data.status === 'FAILURE') {
-              setIsRunning(false);
-              return;
-            }
-            timeoutId = setTimeout(poll, 2000);
-          } catch (err) {
-            timeoutId = setTimeout(poll, 2000);
-          }
-        };
-        poll();
-        return () => clearTimeout(timeoutId);
-      }, [taskId]); // re-run when taskId changes
+      
     } catch (err) {
       setUploadStatus('error');
       setIsRunning(false);
