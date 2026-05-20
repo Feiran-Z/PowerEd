@@ -34,8 +34,8 @@ async def create_task(
     model: str = Form(None),
     files: list[UploadFile] = File(None)
 ):
-    task_id = str(uuid.uuid4())
-    workspace = UPLOAD_DIR / task_id
+    workspace_id = str(uuid.uuid4())
+    workspace = UPLOAD_DIR / workspace_id
     workspace.mkdir()
 
     # Save uploaded files
@@ -58,9 +58,13 @@ async def create_task(
 
     # Launch Celery task
     celery_task = run_claude_task.delay(
-        str(workspace), enhanced_prompt, api_key, base_url, model, task_id
+        str(workspace), enhanced_prompt, api_key, base_url, model, workspace_id
     )
-    return {"task_id": celery_task.id, "ws_url": f"/ws/{task_id}"}
+    return {
+        "celery_task_id": celery_task.id,
+        "workspace_id": workspace_id,
+        "ws_url": f"/ws/{workspace_id}"
+    }
 
 @app.get("/api/tasks/{task_id}/status")
 async def get_status(task_id: str):

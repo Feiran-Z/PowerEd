@@ -4,6 +4,7 @@ import PromptInput from './components/PromptInput';
 import LogViewer from './components/LogViewer';
 import DownloadButton from './components/DownloadButton';
 import { submitTask } from './api';
+import './App.css';
 
 function App() {
   const [files, setFiles] = useState([]);
@@ -13,6 +14,7 @@ function App() {
   const [baseUrl, setBaseUrl] = useState('https://api.deepseek.com/anthropic');
   const [model, setModel] = useState('deepseek-v4-flash');
   const [taskId, setTaskId] = useState(null);
+  const [workspaceId, setWorkspaceId] = useState(null);
   const [logs, setLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
@@ -72,8 +74,9 @@ function App() {
 
     try {
       const response = await submitTask(formData);
-      const { task_id, ws_url } = response;
-      setTaskId(task_id);
+      const { celery_task_id, workspace_id, ws_url } = response;
+      setTaskId(celery_task_id);       // for status polling
+      setWorkspaceId(workspace_id);    // for download
   
       // 1) Try WebSocket for live logs (optional)
       //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -97,7 +100,7 @@ function App() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h1>PowerEd Agent</h1>
+      <h1>PowerEd Agentic Suite</h1>
       <UploadArea onFilesSelected={setFiles} uploadStatus={uploadStatus} />
       <PromptInput value={prompt} onChange={setPrompt} />
       <div>
@@ -107,7 +110,7 @@ function App() {
       </div>
       <button onClick={handleRun} disabled={isRunning}>Run Agent</button>
       <LogViewer logs={logs} />
-      {downloadReady && <DownloadButton taskId={taskId} />}
+      {downloadReady && <DownloadButton taskId={workspaceId} />}
     </div>
   );
 }
