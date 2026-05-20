@@ -9,6 +9,11 @@ redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
 celery_app = Celery('tasks', broker='redis://redis:6379/0', backend='redis://redis:6379/0')
 
 def publish_log(task_id, line):
+    #print(f"📤 PUBLISH to {task_id}: {line[:80]}")
+    #channel = f"logs:{task_id}"
+    #print(f"📤 PUBLISH to {channel}: {line[:80]}")
+    #num_subscribers = redis_client.publish(channel, line)
+    #print(f"   -> Sent to {num_subscribers} subscriber(s)")
     redis_client.publish(f"logs:{task_id}", line)
     workspace = Path("/tmp/uploads") / task_id
     log_file = workspace / "agent.log"

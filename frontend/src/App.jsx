@@ -24,6 +24,7 @@ function App() {
     let timeoutId;
     const poll = async () => {
       try {
+        // status
         const res = await fetch(`/api/tasks/${taskId}/status`);
         const data = await res.json();
         if (data.status === 'SUCCESS') {
@@ -33,6 +34,13 @@ function App() {
         } else if (data.status === 'FAILURE') {
           setIsRunning(false);
           return;
+        }
+        // logs
+        const logRes = await fetch(`/api/tasks/${taskId}/logs?offset=${logOffset}`);
+        const logData = await logRes.json();
+        if (logData.logs) {
+          setLogs(prev => [...prev, logData.logs]);
+          logOffset = logData.next_offset;
         }
         timeoutId = setTimeout(poll, 2000);
       } catch (err) {
@@ -79,12 +87,15 @@ function App() {
       setWorkspaceId(workspace_id);    // for download
   
       // 1) Try WebSocket for live logs (optional)
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
-      ws.onopen = () => console.log("WebSocket connected");
-      ws.onmessage = (event) => setLogs(prev => [...prev, event.data]);
-      ws.onerror = (err) => console.error("WebSocket error", err);
-      ws.onclose = () => console.log("WebSocket closed");
+      //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      //const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
+      //ws.onopen = () => console.log("🔌 WebSocket opened to", ws_url);
+      //ws.onmessage = (event) => {
+      //    console.log("📨 WS message:", event.data);
+      //    setLogs(prev => [...prev, event.data]);
+      //};
+      //ws.onerror = (err) => console.error("❌ WebSocket error", err);
+      //ws.onclose = (ev) => console.log("🔌 WebSocket closed", ev.reason);
       
     } catch (err) {
       setUploadStatus('error');

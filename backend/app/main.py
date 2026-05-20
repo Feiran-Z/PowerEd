@@ -78,6 +78,18 @@ async def download_result(task_id: str):
         raise HTTPException(404, "Result not ready or expired")
     return FileResponse(zip_path, media_type="application/zip", filename="output.zip")
 
+@app.get("/api/tasks/{task_id}/logs")
+async def get_logs(task_id: str, offset: int = 0):
+    workspace = UPLOAD_DIR / task_id
+    log_file = workspace / "agent.log"
+    if not log_file.exists():
+        return {"logs": "", "next_offset": 0}
+    with open(log_file, "r") as f:
+        f.seek(offset)
+        new_logs = f.read()
+        next_offset = f.tell()
+    return {"logs": new_logs, "next_offset": next_offset}
+
 @app.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await manager.connect(websocket, task_id)
