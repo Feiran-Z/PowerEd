@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.exceptions import SoftTimeLimitExceeded
 import docker
 import redis
 import shutil
@@ -14,11 +15,13 @@ def publish_log(task_id, line):
     with open(log_file, "a") as f:
         f.write(line)
 
-@celery_app.task(bind=True)
+@celery_app.task(bind=True, soft_time_limit=1200, time_limit=1260)
 def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_id):
     publish_log(task_id, "🚀 Starting Claude container using Docker SDK...\n")
     publish_log(task_id, f"Workspace: {workspace_dir}\n")
     publish_log(task_id, f"Prompt length: {len(prompt)} chars\n")
+
+    container = None
 
     # Prepare environment variables (remove None values)
     env_vars = {
@@ -51,6 +54,7 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
             environment=env_vars,
             volumes={workspace_dir: {"bind": "/workspace", "mode": "rw"}},
             working_dir="/workspace",
+            labels={"task_id": task_id},
             remove=False,          # keep so we can get logs
             detach=True,
             stdout=True,
@@ -75,6 +79,15 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
 
         # Clean up
         container.remove()
+    except SoftTimeLimitExceeded:
+        publish_log(task_id, "⏰ Time limit exceeded. Aborting task.\n")
+        if container:
+            try:
+                container.kill()
+                container.remove()
+            except:
+                pass
+        raise
     except docker.errors.ImageNotFound:
         publish_log(task_id, "\n❌ Docker image 'claude-image:latest' not found. Build it first.\n")
         return {"error": "Image not found"}
