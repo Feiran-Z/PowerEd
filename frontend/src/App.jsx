@@ -81,15 +81,10 @@ function App() {
       // 1) Try WebSocket for live logs (optional)
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
-      ws.onmessage = (event) => {
-        setLogs(prev => [...prev, event.data]);
-        if (event.data.includes('Results zipped')) {
-          setDownloadReady(true);
-          setIsRunning(false);
-        }
-      };
+      ws.onopen = () => console.log("WebSocket connected");
+      ws.onmessage = (event) => setLogs(prev => [...prev, event.data]);
       ws.onerror = (err) => console.error("WebSocket error", err);
-  
+      ws.onclose = () => console.log("WebSocket closed");
       
     } catch (err) {
       setUploadStatus('error');
