@@ -3,6 +3,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 import docker
 import redis
 import shutil
+import threading, time
 from pathlib import Path
 
 redis_client = redis.Redis(host='redis', port=6379, decode_responses=True)
@@ -50,6 +51,19 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
     except Exception as e:
         publish_log(task_id, f"❌ Failed to connect to Docker daemon: {e}\n")
         return {"error": "Docker daemon unavailable"}
+    
+    # Start a heartbeat thread
+    stop_heartbeat = threading.Event()
+    def heartbeat():
+        counter = 0
+        while not stop_heartbeat.is_set():
+            time.sleep(10)  # every 10 seconds
+            if not stop_heartbeat.is_set():
+                counter += 1
+                publish_log(task_id, f"⏳ Agent is still running... ({counter*10}s elapsed)\n")
+    
+    heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+    heartbeat_thread.start()
 
     try:
         # Run container
@@ -72,6 +86,7 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
         # Wait for completion
         result = container.wait()
         exit_code = result.get('StatusCode', -1)
+        stop_heartbeat.set()
 
         # Get all logs after exit (both stdout and stderr)
         logs = container.logs(stdout=True, stderr=True).decode('utf-8', errors='replace')
@@ -92,13 +107,18 @@ def run_claude_task(self, workspace_dir, prompt, api_key, base_url, model, task_
                 container.remove()
             except:
                 pass
+        stop_heartbeat.set()
         raise
     except docker.errors.ImageNotFound:
         publish_log(task_id, "\n❌ Docker image 'claude-image:latest' not found. Build it first.\n")
         return {"error": "Image not found"}
+        stop_heartbeat.set()
     except Exception as e:
         publish_log(task_id, f"\n❌ Docker error: {e}\n")
         return {"error": str(e)}
+        stop_heartbeat.set()
+    finally:
+        stop_heartbeat.set()
 
     # After container finishes
     output_dir = Path(workspace_dir) / "output"

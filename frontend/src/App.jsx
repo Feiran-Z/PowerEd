@@ -13,20 +13,19 @@ function App() {
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('https://api.deepseek.com/anthropic');
   const [model, setModel] = useState('deepseek-v4-flash');
-  const [taskId, setTaskId] = useState(null);
+  const [celeryTaskId, setCeleryTaskId] = useState(null);
   const [workspaceId, setWorkspaceId] = useState(null);
   const [logs, setLogs] = useState([]);
   const [isRunning, setIsRunning] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
 
   useEffect(() => {
-    if (!taskId) return;
-    let timeoutId;
-    let logOffset = 0;
-    const poll = async () => {
+    if (!celeryTaskId) return;
+    let statusTimeoutId;
+    const pollStatus = async () => {
       try {
         // status
-        const res = await fetch(`/api/tasks/${taskId}/status`);
+        const res = await fetch(`/api/tasks/${celeryTaskId}/status`);
         const data = await res.json();
         if (data.status === 'SUCCESS') {
           setDownloadReady(true);
@@ -36,21 +35,40 @@ function App() {
           setIsRunning(false);
           return;
         }
+        statusTimeoutId = setTimeout(pollStatus, 2000);
+      } catch (err) {
+        statusTimeoutId = setTimeout(pollStatus, 2000);
+      }
+    };
+    pollStatus();
+    return () => {
+      if (statusTimeoutId) clearTimeout(statusTimeoutId);
+    };
+  }, [celeryTaskId]); // re-run when celeryTaskId changes
+  
+  useEffect(() => {
+    if (!workspaceId) return;
+    let logTimeoutId;
+    let logOffset = 0;
+    const pollLogs = async () => {
+      try {
         // logs
-        const logRes = await fetch(`/api/tasks/${taskId}/logs?offset=${logOffset}`);
+        const logRes = await fetch(`/api/tasks/${workspaceId}/logs?offset=${logOffset}`);
         const logData = await logRes.json();
         if (logData.logs) {
           setLogs(prev => [...prev, logData.logs]);
           logOffset = logData.next_offset;
         }
-        timeoutId = setTimeout(poll, 2000);
+        logTimeoutId= setTimeout(pollLogs, 2000);
       } catch (err) {
-        timeoutId = setTimeout(poll, 2000);
+        logTimeoutId = setTimeout(pollLogs, 2000);
       }
     };
-    poll();
-    return () => clearTimeout(timeoutId);
-  }, [taskId]); // re-run when taskId changes
+    pollLogs();
+    return () => {
+      if (logTimeoutId) clearTimeout(logTimeoutId);
+    };
+  }, [workspaceId]); // re-run when workspaceId changes
 
   const handleRun = async () => {
     // --- Validation first ---
@@ -75,16 +93,17 @@ function App() {
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
     
-    setTaskId(null);
+    setCeleryTaskId(null);
+    setWorkspaceId(null);
     setIsRunning(true);
     setDownloadReady(false);
     setLogs([]);
-    setUploadStatus('uploading');
+    setUploadStatus('Successfully uploaded');
 
     try {
       const response = await submitTask(formData);
       const { celery_task_id, workspace_id, ws_url } = response;
-      setTaskId(celery_task_id);       // for status polling
+      setCeleryTaskId(celery_task_id);       // for status polling
       setWorkspaceId(workspace_id);    // for download
   
       // 1) Try WebSocket for live logs (optional)
