@@ -22,6 +22,7 @@ function App() {
   useEffect(() => {
     if (!taskId) return;
     let timeoutId;
+    let logOffset = 0;
     const poll = async () => {
       try {
         // status
