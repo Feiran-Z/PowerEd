@@ -4,16 +4,8 @@ import { downloadResult } from '../api';
 function DownloadButton({ taskId }) {
   return (
     <button
+      className="download-btn"
       onClick={() => downloadResult(taskId)}
-      style={{
-        marginTop: 10,
-        padding: '8px 16px',
-        backgroundColor: '#28a745',
-        color: 'white',
-        border: 'none',
-        borderRadius: 4,
-        cursor: 'pointer',
-      }}
     >
       Download Results (ZIP)
     </button>

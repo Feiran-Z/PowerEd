@@ -44,8 +44,8 @@ function App() {
     return () => {
       if (statusTimeoutId) clearTimeout(statusTimeoutId);
     };
-  }, [celeryTaskId]); // re-run when celeryTaskId changes
-  
+  }, [celeryTaskId]);
+
   useEffect(() => {
     if (!workspaceId) return;
     let logTimeoutId;
@@ -68,7 +68,7 @@ function App() {
     return () => {
       if (logTimeoutId) clearTimeout(logTimeoutId);
     };
-  }, [workspaceId]); // re-run when workspaceId changes
+  }, [workspaceId]);
 
   const handleRun = async () => {
     // --- Validation first ---
@@ -92,7 +92,7 @@ function App() {
     if (baseUrl) formData.append('base_url', baseUrl);
     if (model) formData.append('model', model);
     files.forEach(f => formData.append('files', f));
-    
+
     setCeleryTaskId(null);
     setWorkspaceId(null);
     setIsRunning(true);
@@ -103,20 +103,8 @@ function App() {
     try {
       const response = await submitTask(formData);
       const { celery_task_id, workspace_id, ws_url } = response;
-      setCeleryTaskId(celery_task_id);       // for status polling
-      setWorkspaceId(workspace_id);    // for download
-  
-      // 1) Try WebSocket for live logs (optional)
-      //const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      //const ws = new WebSocket(`${protocol}//${window.location.host}${ws_url}`);
-      //ws.onopen = () => console.log("🔌 WebSocket opened to", ws_url);
-      //ws.onmessage = (event) => {
-      //    console.log("📨 WS message:", event.data);
-      //    setLogs(prev => [...prev, event.data]);
-      //};
-      //ws.onerror = (err) => console.error("❌ WebSocket error", err);
-      //ws.onclose = (ev) => console.log("🔌 WebSocket closed", ev.reason);
-      
+      setCeleryTaskId(celery_task_id);
+      setWorkspaceId(workspace_id);
     } catch (err) {
       setUploadStatus('error');
       setIsRunning(false);
@@ -124,20 +112,70 @@ function App() {
     }
   };
 
+  const statusClass = isRunning ? 'running' : downloadReady ? 'success' : 'idle';
+
   return (
-    <div style={{ padding: 20 }}>
-      <h1>PowerEd Agentic Suite</h1>
-      <UploadArea onFilesSelected={setFiles} uploadStatus={uploadStatus} />
-      <PromptInput value={prompt} onChange={setPrompt} />
-      <div>
-        <label>API Key: <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} /></label>
-        <label>Base URL: <input value={baseUrl} onChange={e=>setBaseUrl(e.target.value)} /></label>
-        <label>Model: <input value={model} onChange={e=>setModel(e.target.value)} /></label>
-      </div>
-      <button onClick={handleRun} disabled={isRunning}>Run Agent</button>
-      <LogViewer logs={logs} />
-      {downloadReady && <DownloadButton taskId={workspaceId} />}
+    <div className="app-layout">
+      <aside className="sidebar">
+        <div className="sidebar-section">
+          <h3 className="sidebar-heading">Files</h3>
+          <UploadArea onFilesSelected={setFiles} uploadStatus={uploadStatus} />
+        </div>
+
+        <div className="sidebar-section">
+          <h3 className="sidebar-heading">Prompt</h3>
+          <PromptInput value={prompt} onChange={setPrompt} />
+        </div>
+
+        <details className="config-section">
+          <summary className="config-summary">Advanced Settings</summary>
+          <div className="config-fields">
+            <label className="config-label">
+              API Key
+              <input className="config-input" type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} />
+            </label>
+            <label className="config-label">
+              Base URL
+              <input className="config-input" value={baseUrl} onChange={e => setBaseUrl(e.target.value)} />
+            </label>
+            <label className="config-label">
+              Model
+              <input className="config-input" value={model} onChange={e => setModel(e.target.value)} />
+            </label>
+          </div>
+        </details>
+
+        <button className="run-btn" onClick={handleRun} disabled={isRunning}>
+          {isRunning ? (
+            <>
+              <span className="run-btn-spinner" />
+              Running...
+            </>
+          ) : (
+            'Run Agent'
+          )}
+        </button>
+      </aside>
+
+      <main className="main-panel">
+        <header className="main-header">
+          <h1>PowerEd Agentic Suite</h1>
+          <span className={`status-indicator status-${statusClass}`}>
+            <span className="status-dot" />
+            {isRunning ? 'Processing' : downloadReady ? 'Complete' : 'Ready'}
+          </span>
+        </header>
+
+        <LogViewer logs={logs} />
+
+        {downloadReady && (
+          <div className="download-section">
+            <DownloadButton taskId={workspaceId} />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
+
 export default App;

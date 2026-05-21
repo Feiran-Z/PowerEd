@@ -5,7 +5,6 @@ function UploadArea({ onFilesSelected, uploadStatus = 'idle' }) {
   const [files, setFiles] = useState([]);
 
   const onDrop = useCallback((acceptedFiles) => {
-    // Append new files to existing ones (or replace – your choice)
     setFiles(prev => [...prev, ...acceptedFiles]);
   }, []);
 
@@ -21,14 +20,12 @@ function UploadArea({ onFilesSelected, uploadStatus = 'idle' }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Notify parent whenever files change
   useEffect(() => {
     onFilesSelected(files);
   }, [files, onFilesSelected]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-  // Status message mapping
   const getStatusIcon = () => {
     switch (uploadStatus) {
       case 'uploading':
@@ -43,18 +40,10 @@ function UploadArea({ onFilesSelected, uploadStatus = 'idle' }) {
   };
 
   return (
-    <div>
+    <div className="upload-area">
       <div
         {...getRootProps()}
-        style={{
-          border: '2px dashed #ccc',
-          borderRadius: 8,
-          padding: 20,
-          textAlign: 'center',
-          cursor: 'pointer',
-          marginBottom: 20,
-          backgroundColor: isDragActive ? '#f0f0f0' : 'white',
-        }}
+        className={`upload-dropzone${isDragActive ? ' upload-dropzone--active' : ''}`}
       >
         <input {...getInputProps()} />
         {isDragActive ? (
@@ -64,37 +53,27 @@ function UploadArea({ onFilesSelected, uploadStatus = 'idle' }) {
         )}
       </div>
 
-      {/* File list display */}
       {files.length > 0 && (
-        <div style={{ marginBottom: 20, padding: 10, backgroundColor: '#f9f9f9', borderRadius: 4 }}>
-          <h4 style={{ margin: '0 0 10px 0' }}>Selected Files ({files.length})</h4>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {files.map((file, idx) => (
-              <li key={`${file.name}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
-                <span>
-                  📄 {file.name} <span style={{ fontSize: 12, color: '#666' }}>({formatBytes(file.size)})</span>
-                </span>
-                <button
-                  onClick={() => removeFile(idx)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#dc3545',
-                    fontSize: 18,
-                  }}
-                >
-                  ✖
-                </button>
-              </li>
-            ))}
-          </ul>
+        <div className="upload-file-list">
+          {files.map((file, idx) => (
+            <div key={`${file.name}-${idx}`} className="upload-file-item">
+              <span className="upload-file-name">
+                📄 {file.name}
+                <span className="upload-file-size">({formatBytes(file.size)})</span>
+              </span>
+              <button
+                onClick={() => removeFile(idx)}
+                className="upload-file-remove"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Upload status indication */}
       {getStatusIcon() && (
-        <div style={{ marginTop: 10, fontSize: 14, fontWeight: 'bold' }}>
+        <div className="upload-status">
           {getStatusIcon()}
         </div>
       )}

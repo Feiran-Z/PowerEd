@@ -10,23 +10,24 @@ function LogViewer({ logs }) {
   }, [logs]);
 
   return (
-    <div style={{ marginTop: 20 }}>
-      <h3>Live Output</h3>
+    <div className="log-viewer">
+      <div className="log-viewer__header">
+        <h3>Live Output</h3>
+        {logs.length > 0 && (
+          <span style={{ fontSize: 12, color: 'var(--color-text-secondary)' }}>
+            {logs.length} entries
+          </span>
+        )}
+      </div>
       <pre
         ref={preRef}
-        style={{
-          backgroundColor: '#1e1e1e',
-          color: '#d4d4d4',
-          padding: 10,
-          height: 300,
-          overflowY: 'auto',
-          fontFamily: 'monospace',
-          fontSize: 12,
-          whiteSpace: 'pre-wrap',
-          wordWrap: 'break-word',
-        }}
+        className="log-viewer__content"
       >
-        {logs.length === 0 ? 'Waiting for logs...' : logs.join('')}
+        {logs.length === 0 ? (
+          <span className="log-viewer__empty">Waiting for logs...</span>
+        ) : (
+          logs.join('')
+        )}
       </pre>
     </div>
   );
