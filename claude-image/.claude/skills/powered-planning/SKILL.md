@@ -26,7 +26,7 @@ home/node/
     └── settings.local.json              # Local settings
 ```
 
-Current working directory (cwd) in Docker container is `workspace/`
+Current working directory (`[cwd]/`) in Docker container is `workspace/`
 ```
 workspace/
 ├── uploads/                             # Folder containing user uploaded files such as syllabi and unit planner
