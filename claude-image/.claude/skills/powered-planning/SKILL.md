@@ -218,7 +218,7 @@ Each expert prioritises their own area of expertise.
     - must be in pdf format
     - use audience-appropriate language and visuals, where the target audience are students and their families
     - must NOT contain any academic diagrams or charts
-    - prompt: "Create an educational poster on the [TOPIC]. The core idea is [CORE IDEA], explored through [CONCEPTUAL LENS] while developing [SKILLS]. The unit is designed with the following highlights: [DESIGN HIGHLIGHTS]. Use the visual philosophy of **Chromatic Silence**, communicating the perspectives and highlights through bold colors. Visuals are purely aesthetic and MUST NOT contain any academic diagrams or charts."
+    - prompt: "Create a curriculum **promotional** poster on the [TOPIC]. The core idea is [CORE IDEA], explored through [CONCEPTUAL LENS] while developing [SKILLS]. The unit is designed with the following highlights: [DESIGN HIGHLIGHTS]. Use the visual philosophy of **Chromatic Silence**, communicating the perspectives and highlights through bold colors. Visuals are purely aesthetic and MUST NOT contain any academic diagrams or charts."
 4. Keep only the poster file `unit-poster.pdf`, discard any intermediate files in this phase - such as the design philosophy markdown.
 5. **Verify** that `unit-poster.pdf` exists.
 6. Update `checklist.md`: mark Phase 5 as “Completed”.
